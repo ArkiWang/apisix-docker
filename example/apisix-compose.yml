@@ -1,0 +1,48 @@
+version: "3.11.0"
+
+services:
+  etcd:
+    image: bitnami/etcd:latest
+    restart: always
+    environment:
+      ETCD_ENABLE_V2: "true"
+      ETCD_ADVERTISE_CLIENT_URLS: "http://etcd:2379"
+      ETCD_LISTEN_CLIENT_URLS: "http://0.0.0.0:2379"
+      ALLOW_NONE_AUTHENTICATION: "yes"
+    ports:
+      - "2379:2379"  # etcd 客户端端口
+    networks:
+      - apisix_network
+
+  apisix:
+    image: apache/apisix:latest
+    restart: always
+    volumes:
+      - ./apisix_conf/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+    ##network_mode: host
+    ports:
+      - "9180:9180/tcp"
+      - "9080:9080/tcp"
+      - "9091:9091/tcp"
+      - "9443:9443/tcp"
+      - "9092:9092/tcp"
+    depends_on:
+      - etcd
+    networks:
+      - apisix_network
+
+  dashboard:
+    image: apache/apisix-dashboard:latest
+    restart: always
+    volumes:
+      - ./dashboard_conf/conf.yaml:/usr/local/apisix-dashboard/conf/conf.yaml:ro
+    ports:
+      - "9000:9000"  # Dashboard 管理界面端口
+    depends_on:
+      - etcd
+    networks:
+      - apisix_network
+
+networks:
+  apisix_network:
+    driver: bridge
